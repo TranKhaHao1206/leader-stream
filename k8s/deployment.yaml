@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leader-stream
+  labels:
+    app: leader-stream
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: leader-stream
+  template:
+    metadata:
+      labels:
+        app: leader-stream
+    spec:
+      # Required only if the GHCR repo is private.
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: leader-stream
+          # Replace in CI/CD (e.g. envsubst) with the current git SHA.
+          image: ghcr.io/trustless-engineering/leader-stream:${GIT_SHA}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: http
+          envFrom:
+            - secretRef:
+                name: leader-stream-secrets
+          env:
+            - name: PORT
+              value: "3000"
+            # Optional override for Solana RPC
+            # - name: SOLANA_RPC_URL
+            #   value: "https://your-solana-rpc"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

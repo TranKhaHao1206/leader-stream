@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TPU Map API Docs</title>
+    <meta name="description" content="API options and response payloads for the Solana Next Leader TPU Map service." />
+    <meta property="og:title" content="TPU Map API Docs" />
+    <meta property="og:description" content="API options and response payloads for the Solana Next Leader TPU Map service." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/og.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css?{{cache_bust}}" />
+  </head>
+  <body class="docs-body">
+    <div class="backdrop" aria-hidden="true">
+      <div class="glow one"></div>
+      <div class="glow two"></div>
+      <div class="glow three"></div>
+      <div class="grain"></div>
+    </div>
+    <main class="page docs-page">
+      <header class="docs-hero">
+        <div class="docs-hero-copy">
+          <a class="docs-back" href="/">Back to the map</a>
+          <div class="badge">
+            <span class="pulse"></span>
+            Solana Mainnet - API Docs
+          </div>
+          <h1>
+            <span class="title-top">API</span>
+            <span class="title-gradient">Reference</span>
+          </h1>
+          <p class="lede">
+            Query parameters, response fields, and examples for each endpoint powering the Next Leader TPU Map.
+          </p>
+        </div>
+        <aside class="hero-card docs-card">
+          <p class="card-copy">
+            All endpoints are CORS-enabled, respond with JSON (except the SSE stream), and are safe to cache for short intervals.
+          </p>
+          <span class="card-label">Quick links</span>
+          <div class="api-grid">
+            <a class="api-link" href="#next-leaders">/api/next-leaders</a>
+            <a class="api-link" href="#current-slot">/api/current-slot</a>
+            <a class="api-link" href="#leader-stream">/api/leader-stream</a>
+          </div>
+        </aside>
+      </header>
+
+      <section class="panel docs-panel" id="next-leaders">
+        <div class="panel-head">
+          <div>
+            <h2>GET /api/next-leaders</h2>
+            <p class="sub">Returns upcoming slot leaders with TPU metadata starting from the latest known slot.</p>
+          </div>
+        </div>
+        <div class="docs-grid">
+          <div class="docs-block">
+            <span class="docs-label">Query params</span>
+            <ul class="docs-list">
+              <li><span class="docs-key">limit</span> Optional integer. Defaults to 1000, clamps between 1 and 5000. Invalid values fall back to the default.</li>
+            </ul>
+          </div>
+          <div class="docs-block">
+            <span class="docs-label">Response fields</span>
+            <ul class="docs-list">
+              <li><span class="docs-key">currentSlot</span> Latest slot used as the starting point.</li>
+              <li><span class="docs-key">limit</span> The resolved limit after clamping.</li>
+              <li><span class="docs-key">leaders</span> Array of slot rows (see below).</li>
+              <li><span class="docs-key">slotMs</span> Estimated milliseconds per slot.</li>
+              <li><span class="docs-key">ts</span> Server timestamp (ms since epoch).</li>
+            </ul>
+          </div>
+          <div class="docs-block">
+            <span class="docs-label">Leader row</span>
+            <ul class="docs-list">
+              <li><span class="docs-key">slot</span> Slot number.</li>
+              <li><span class="docs-key">leader</span> Validator identity pubkey.</li>
+              <li><span class="docs-key">tpu</span> TPU address string, if known.</li>
+              <li><span class="docs-key">ip</span> Parsed IP address, if available.</li>
+              <li><span class="docs-key">port</span> Parsed port, if available.</li>
+            </ul>
+          </div>
+          <div class="docs-block docs-span">
+            <span class="docs-label">Example</span>
+            <pre class="docs-code"><code class="docs-example" data-command="curl" data-endpoint="/api/next-leaders?limit=250"></code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel docs-panel" id="current-slot">
+        <div class="panel-head">
+          <div>
+            <h2>GET /api/current-slot</h2>
+            <p class="sub">Returns the latest observed Solana slot and server timestamp.</p>
+          </div>
+        </div>
+        <div class="docs-grid">
+          <div class="docs-block">
+            <span class="docs-label">Query params</span>
+            <ul class="docs-list">
+              <li>None.</li>
+            </ul>
+          </div>
+          <div class="docs-block">
+            <span class="docs-label">Response fields</span>
+            <ul class="docs-list">
+              <li><span class="docs-key">currentSlot</span> Latest slot hint used by the service.</li>
+              <li><span class="docs-key">ts</span> Server timestamp (ms since epoch).</li>
+            </ul>
+          </div>
+          <div class="docs-block docs-span">
+            <span class="docs-label">Example</span>
+            <pre class="docs-code"><code class="docs-example" data-command="curl" data-endpoint="/api/current-slot"></code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel docs-panel" id="leader-stream">
+        <div class="panel-head">
+          <div>
+            <h2>GET /api/leader-stream</h2>
+            <p class="sub">Server-sent events (SSE) stream of the current and next slot leader.</p>
+          </div>
+        </div>
+        <div class="docs-grid">
+          <div class="docs-block">
+            <span class="docs-label">Query params</span>
+            <ul class="docs-list">
+              <li><span class="docs-key">track</span> Optional validator identity pubkey. When present, payloads include <code>slotsUntilLeader</code> when known.</li>
+            </ul>
+          </div>
+          <div class="docs-block">
+            <span class="docs-label">Event payload</span>
+            <ul class="docs-list">
+              <li><span class="docs-key">slot</span> Current slot number.</li>
+              <li><span class="docs-key">slotTimestamp</span> Slot timestamp in ms since epoch.</li>
+              <li><span class="docs-key">currentValidator</span> Current leader pubkey.</li>
+              <li><span class="docs-key">nextValidator</span> Next leader pubkey.</li>
+              <li><span class="docs-key">currentTpu</span>, <span class="docs-key">currentIp</span>, <span class="docs-key">currentPort</span> TPU metadata for the current leader.</li>
+              <li><span class="docs-key">nextTpu</span>, <span class="docs-key">nextIp</span>, <span class="docs-key">nextPort</span> TPU metadata for the next leader.</li>
+              <li><span class="docs-key">slotsUntilSwitch</span> Slots remaining until the leader switches.</li>
+              <li><span class="docs-key">slotsUntilLeader</span> Slots until the tracked leader (only when <code>track</code> is set).</li>
+            </ul>
+          </div>
+          <div class="docs-block">
+            <span class="docs-label">Error event</span>
+            <ul class="docs-list">
+              <li>Emits an <code>error</code> SSE event with <code>{"message":"..."}</code> when the stream encounters a backend issue.</li>
+            </ul>
+          </div>
+          <div class="docs-block docs-span">
+            <span class="docs-label">Example</span>
+            <pre class="docs-code"><code class="docs-example" data-command="curl -N" data-endpoint="/api/leader-stream?track=YourValidatorPubkey"></code></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script>
+      (function () {
+        const origin = window.location.origin;
+        const examples = document.querySelectorAll(".docs-example");
+
+        examples.forEach((node) => {
+          const command = node.getAttribute("data-command") || "curl";
+          const endpoint = node.getAttribute("data-endpoint") || "";
+          node.textContent = `${command} "${origin}${endpoint}"`;
+        });
+      })();
+    </script>
+  </body>
+</html>

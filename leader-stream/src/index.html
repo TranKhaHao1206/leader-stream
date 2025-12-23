@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Solana Next Leader TPU Map</title>
+        <meta name="leader-stream-url" content="{{leader_stream_url}}" />
+        <meta
+            name="description"
+            content="Live snapshot of upcoming Solana slot leaders and their TPU endpoints."
+        />
+        <meta property="og:title" content="Solana Next Leader TPU Map" />
+        <meta
+            property="og:description"
+            content="Live snapshot of upcoming Solana slot leaders and their TPU endpoints."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="/og.svg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:type" content="image/svg+xml" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Solana Next Leader TPU Map" />
+        <meta
+            name="twitter:description"
+            content="Live snapshot of upcoming Solana slot leaders and their TPU endpoints."
+        />
+        <meta name="twitter:image" content="/og.svg" />
+    <link rel="stylesheet" href="/styles.css?{{cache_bust}}" />
+    </head>
+    <body>
+        <div class="backdrop" aria-hidden="true">
+            <div class="glow one"></div>
+            <div class="glow two"></div>
+            <div class="glow three"></div>
+            <div class="grain"></div>
+        </div>
+        <main class="page">
+            <div class="footer footer-top">
+                <a class="footer-link" href="/docs.html">Docs</a>
+                &middot; Made with love by &nbsp;
+                <a
+                    class="footer-link"
+                    href="https://x.com/wedtm"
+                    target="_blank"
+                    rel="noreferrer"
+                >
+                    @wedtm
+                </a>
+                .
+                <button
+                    class="donate-link"
+                    type="button"
+                    data-address="74K2R7zqxv7nZH5LCru1u9WhdT9wznKUrwSC6kFmWzid"
+                    aria-label="Copy Solana donation address"
+                >
+                    Buy me a beer
+                </button>
+            </div>
+            <header class="hero">
+                <div class="hero-main">
+                    <div class="badge">
+                        <span class="pulse"></span>
+                        Solana Mainnet - Live Leaders
+                    </div>
+                    <h1>
+                        <span class="title-top">Next Leader</span>
+                        <span class="title-gradient">TPU Map</span>
+                    </h1>
+                    <div id="status" class="status">Ready.</div>
+                </div>
+                <aside class="hero-card">
+                    <p class="card-copy">
+                        Live snapshot of upcoming Solana slot leaders and their
+                        TPU endpoints, derived directly from the mainnet leader
+                        schedule and cluster node list.
+                    </p>
+                    <span class="card-label">API</span>
+                    <div class="api-grid">
+                        <div class="api-item">
+                            <p>Fetch the list programmatically at</p>
+                            <a class="api-link" href="/api/next-leaders"
+                                >/api/next-leaders</a
+                            >
+                        </div>
+                        <div class="api-item">
+                            <p>Stream live slot leaders at</p>
+                            <a class="api-link" href="{{leader_stream_url}}"
+                                >{{leader_stream_url}}</a
+                            >
+                        </div>
+                    </div>
+                </aside>
+            </header>
+            <section class="panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Upcoming leaders</h2>
+                        <p class="sub">
+                            Consecutive slots are grouped by leader to reduce
+                            repeats.
+                        </p>
+                    </div>
+                    <div id="meta" class="meta"></div>
+                </div>
+                <div class="controls">
+                    <label class="field" for="leader-filter">
+                        <span>Filter by validator prefix</span>
+                        <input
+                            id="leader-filter"
+                            type="text"
+                            placeholder="Enter a validator key prefix"
+                            autocomplete="off"
+                            autocapitalize="off"
+                            spellcheck="false"
+                        />
+                    </label>
+                    <div class="field">
+                        <span>Matches</span>
+                        <output id="filter-summary" class="filter-summary"
+                            >All leaders</output
+                        >
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table id="leaders-table">
+                        <thead>
+                            <tr>
+                                <th>Slots until</th>
+                <th>Slot start</th>
+                                <th class="eta-col">Ends (est.)</th>
+                <th class="leader-col">
+                  <span class="th-label">Leader</span>
+                  <span class="th-pause-pill">Paused</span>
+                </th>
+                                <th>TPU</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="empty">
+                                    Load data to see upcoming leaders.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+        {{initial_script}}
+    <script src="/app.js?{{cache_bust}}"></script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+pub const DEFAULT_PORT: u16 = 3000;
+pub const DEFAULT_RPC_URL: &str = "https://api.mainnet-beta.solana.com";
+pub const DEFAULT_REQUEST_TIMEOUT_MS: u64 = 10000;
+pub const DEFAULT_NODE_CACHE_TTL_MS: u64 = 5000;
+pub const DEFAULT_HEARTBEAT_MS: u64 = 15000;
+pub const DEFAULT_WS_PING_MS: u64 = 15000;
+pub const DEFAULT_LEADER_CACHE_REFRESH_MS: u64 = 500;
+pub const DEFAULT_TRACK_LOOKAHEAD: usize = 5000;
+pub const DEFAULT_LEADER_LOOKAHEAD: usize = DEFAULT_TRACK_LOOKAHEAD;
+pub const BROADCAST_BUFFER: usize = 1024;
+pub const API_CACHE_TTL_MS: u64 = 1000;
+pub const API_FALLBACK_SLOT_MS: u64 = 400;
+pub const NEXT_LEADERS_DEFAULT_LIMIT: usize = 1000;
+pub const NEXT_LEADERS_MIN_LIMIT: usize = 1;
+pub const NEXT_LEADERS_MAX_LIMIT: usize = 5000;
+pub const INITIAL_PAYLOAD_LIMIT: usize = 250;
+pub const DEFAULT_STATIC_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/public");

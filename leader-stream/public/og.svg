@@ -1,0 +1,62 @@
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="1200"
+    height="630"
+    viewBox="0 0 1200 630"
+    fill="none"
+>
+    <rect width="1200" height="630" fill="#0b0f14" />
+
+    <text
+        x="96"
+        y="120"
+        fill="#94a3b8"
+        font-size="16"
+        font-family="SF Pro Text, Segoe UI, Arial, sans-serif"
+        letter-spacing="2.4"
+    >
+        SOLANA MAINNET - LIVE LEADERS
+    </text>
+
+    <text
+        x="96"
+        y="260"
+        fill="#f8fafc"
+        font-size="78"
+        font-weight="600"
+        font-family="SF Pro Display, Segoe UI, Arial, sans-serif"
+    >
+        NEXT LEADER
+    </text>
+    <text
+        x="96"
+        y="340"
+        fill="#e2e8f0"
+        font-size="78"
+        font-weight="600"
+        font-family="SF Pro Display, Segoe UI, Arial, sans-serif"
+    >
+        TPU MAP
+    </text>
+
+    <rect x="96" y="360" width="180" height="4" rx="2" fill="#14b8a6" />
+
+    <text
+        x="96"
+        y="410"
+        fill="#cbd5e1"
+        font-size="24"
+        font-family="SF Pro Text, Segoe UI, Arial, sans-serif"
+    >
+        Live snapshot of upcoming Solana slot leaders and their TPU endpoints.
+    </text>
+    <text
+        x="96"
+        y="440"
+        fill="#cbd5e1"
+        font-size="24"
+        font-family="SF Pro Text, Segoe UI, Arial, sans-serif"
+    >
+        Derived from the mainnet leader schedule and cluster node list.
+    </text>
+</svg>

@@ -1,0 +1,5 @@
+.git
+.DS_Store
+leader-stream/target
+.env
+.env.*

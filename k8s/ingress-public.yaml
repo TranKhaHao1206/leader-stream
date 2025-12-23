@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: leader-stream-public
+  labels:
+    app: leader-stream
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: areweslotyet.xyz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: leader-stream
+                port:
+                  number: 80
+    - host: www.areweslotyet.xyz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: leader-stream
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - www.areweslotyet.xyz
+        - areweslotyet.xyz
+      secretName: cloudflare-origin-cert

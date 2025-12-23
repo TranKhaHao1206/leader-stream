@@ -1,0 +1,17 @@
+# Build outputs
+leader-stream/target
+leader-stream/public/app.js
+leader-stream/public/app_bg.wasm
+leader-stream/public/app.d.ts
+leader-stream/public/app_bg.wasm.d.ts
+leader-stream/public/styles.css
+
+
+# Local environment/secrets
+.env
+.env.*
+*.env
+k8s/*.env
+
+# TLS private keys / origin certs (keep out of git)
+certs/
