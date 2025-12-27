@@ -10,7 +10,7 @@ use std::time::Duration;
 use anyhow::{anyhow, Context, Result};
 use flate2::read::GzDecoder;
 use maxminddb::geoip2::City;
-use maxminddb::{MaxMindDBError, Reader};
+use maxminddb::{MaxMindDbError, Reader};
 use reqwest::Client;
 use tar::Archive;
 use tokio::sync::RwLock;
@@ -79,12 +79,17 @@ impl GeoIpService {
             }
         };
 
-        let result = match reader.lookup::<City>(ip_addr) {
-            Ok(city) => extract_point(&city),
-            Err(err) => {
-                if !matches!(err, MaxMindDBError::AddressNotFoundError(_)) {
+        let result = match reader.lookup(ip_addr) {
+            Ok(lookup) => match lookup.decode::<City>() {
+                Ok(Some(city)) => extract_point(&city),
+                Ok(None) => None,
+                Err(err) => {
                     self.log_lookup_error_once(err);
+                    None
                 }
+            },
+            Err(err) => {
+                self.log_lookup_error_once(err);
                 None
             }
         };
@@ -97,7 +102,7 @@ impl GeoIpService {
         cache.insert(ip.to_string(), value);
     }
 
-    fn log_lookup_error_once(&self, err: MaxMindDBError) {
+    fn log_lookup_error_once(&self, err: MaxMindDbError) {
         if !self.lookup_error_logged.swap(true, Ordering::SeqCst) {
             warn!(
                 ?err,
@@ -257,21 +262,11 @@ async fn fetch_and_write(client: &Client, url: &str, target: &Path, raw_mmdb: bo
 }
 
 fn extract_point(city: &City) -> Option<GeoPoint> {
-    let location = city.location.as_ref()?;
+    let location = &city.location;
     let latitude = location.latitude?;
     let longitude = location.longitude?;
-    let city_name = city
-        .city
-        .as_ref()
-        .and_then(|record| record.names.as_ref())
-        .and_then(|names| names.get("en"))
-        .map(|value| value.to_string());
-    let country_name = city
-        .country
-        .as_ref()
-        .and_then(|record| record.names.as_ref())
-        .and_then(|names| names.get("en"))
-        .map(|value| value.to_string());
+    let city_name = city.city.names.english.map(|value| value.to_string());
+    let country_name = city.country.names.english.map(|value| value.to_string());
     Some(GeoPoint {
         latitude,
         longitude,
