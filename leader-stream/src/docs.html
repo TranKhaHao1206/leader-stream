@@ -46,6 +46,7 @@
             <a class="api-link" href="#next-leaders">/api/next-leaders</a>
             <a class="api-link" href="#current-slot">/api/current-slot</a>
             <a class="api-link" href="#leader-stream">/api/leader-stream</a>
+            <a class="api-link" href="#leader-path">/api/leader-path</a>
           </div>
         </aside>
       </header>
@@ -155,6 +156,37 @@
           <div class="docs-block docs-span">
             <span class="docs-label">Example</span>
             <pre class="docs-code"><code class="docs-example" data-command="curl -N" data-endpoint="/api/leader-stream?track=YourValidatorPubkey"></code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel docs-panel" id="leader-path">
+        <div class="panel-head">
+          <div>
+            <h2>GET /api/leader-path</h2>
+            <p class="sub">Returns upcoming leaders plus MaxMind geolocation data for the map view.</p>
+          </div>
+        </div>
+        <div class="docs-grid">
+          <div class="docs-block">
+            <span class="docs-label">Query params</span>
+            <ul class="docs-list">
+              <li><span class="docs-key">limit</span> Optional integer. Defaults to 1000, clamps between 1 and 5000. Invalid values fall back to the default.</li>
+            </ul>
+          </div>
+          <div class="docs-block">
+            <span class="docs-label">Response fields</span>
+            <ul class="docs-list">
+              <li><span class="docs-key">currentSlot</span> Latest slot used as the starting point.</li>
+              <li><span class="docs-key">limit</span> The resolved limit after clamping.</li>
+              <li><span class="docs-key">slotMs</span> Estimated milliseconds per slot.</li>
+              <li><span class="docs-key">path</span> Array of rows with <span class="docs-key">slot</span>, <span class="docs-key">leader</span>, <span class="docs-key">ip</span>, <span class="docs-key">port</span>, and geolocation fields <span class="docs-key">latitude</span>, <span class="docs-key">longitude</span>, <span class="docs-key">city</span>, <span class="docs-key">country</span>.</li>
+              <li><span class="docs-key">ts</span> Server timestamp (ms since epoch).</li>
+            </ul>
+          </div>
+          <div class="docs-block docs-span">
+            <span class="docs-label">Example</span>
+            <pre class="docs-code"><code class="docs-example" data-command="curl" data-endpoint="/api/leader-path?limit=250"></code></pre>
           </div>
         </div>
       </section>

@@ -8,6 +8,7 @@ use tower::ServiceExt;
 
 use crate::config::Config;
 use crate::constants::DEFAULT_STATIC_DIR;
+use crate::geo::{GeoIpService, GeoPoint};
 use crate::models::{CachedPayload, CurrentSlotPayload, NodeInfo};
 use crate::rpc::RpcClient;
 use crate::server::build_router;
@@ -26,6 +27,11 @@ fn test_config() -> Config {
         ws_ping_interval: Duration::from_millis(1000),
         leader_lookahead: 100,
         track_lookahead: 200,
+        maxmind_db_path: "./GeoLite2-City.mmdb".to_string(),
+        maxmind_license_key: None,
+        maxmind_edition_id: "GeoLite2-City".to_string(),
+        maxmind_db_download_url: None,
+        maxmind_fallback_url: None,
     }
 }
 
@@ -37,7 +43,7 @@ fn test_state() -> Arc<AppState> {
         config.request_timeout,
     )
     .expect("rpc client");
-    AppState::new(config, rpc, "/api/leader-stream".to_string())
+    AppState::new(config, rpc, "/api/leader-stream".to_string(), None)
 }
 
 fn test_app(state: Arc<AppState>) -> axum::Router {
@@ -48,7 +54,12 @@ fn test_app(state: Arc<AppState>) -> axum::Router {
 async fn health_endpoint_returns_ok() {
     let app = test_app(test_state());
     let response = app
-        .oneshot(Request::builder().uri("/health").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::builder()
+                .uri("/health")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .expect("health response");
     assert_eq!(response.status(), StatusCode::OK);
@@ -181,14 +192,12 @@ async fn leader_stream_sets_event_stream_headers() {
         .await
         .expect("leader stream response");
     assert_eq!(response.status(), StatusCode::OK);
-    assert!(
-        response
-            .headers()
-            .get(header::CONTENT_TYPE)
-            .and_then(|value| value.to_str().ok())
-            .map(|value| value.starts_with("text/event-stream"))
-            .unwrap_or(false)
-    );
+    assert!(response
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .map(|value| value.starts_with("text/event-stream"))
+        .unwrap_or(false));
     assert_eq!(
         response
             .headers()
@@ -223,4 +232,83 @@ async fn leader_stream_sets_event_stream_headers() {
     };
     let text = String::from_utf8_lossy(data.as_ref());
     assert!(text.contains("stream-open"));
+}
+
+#[tokio::test]
+async fn map_endpoint_returns_html() {
+    let app = test_app(test_state());
+    let response = app
+        .oneshot(Request::builder().uri("/map").body(Body::empty()).unwrap())
+        .await
+        .expect("map response");
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response
+            .headers()
+            .get(header::CONTENT_TYPE)
+            .and_then(|value| value.to_str().ok()),
+        Some("text/html; charset=utf-8")
+    );
+}
+
+#[tokio::test]
+async fn leader_path_returns_geolocated_entries() {
+    let config = test_config();
+    let rpc = RpcClient::new(
+        config.rpc_url.clone(),
+        config.rpc_x_token.clone(),
+        config.request_timeout,
+    )
+    .expect("rpc client");
+    let mut cache_map = std::collections::HashMap::new();
+    cache_map.insert(
+        "1.2.3.4".to_string(),
+        Some(GeoPoint {
+            latitude: 10.5,
+            longitude: -20.25,
+            city: Some("Test City".to_string()),
+            country: Some("Testland".to_string()),
+        }),
+    );
+    let geoip = GeoIpService::from_static(cache_map);
+    let state = AppState::new(config, rpc, "/api/leader-stream".to_string(), Some(geoip));
+
+    {
+        let mut cache = state.leader_cache.write().await;
+        cache.start_slot = Some(10);
+        cache.leaders = vec!["leader-geo".to_string()];
+    }
+    {
+        let mut cache = state.nodes_cache.write().await;
+        cache.nodes_by_pubkey.insert(
+            "leader-geo".to_string(),
+            NodeInfo {
+                tpu: Some("1.2.3.4:1000".to_string()),
+            },
+        );
+    }
+
+    let app = test_app(state);
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/leader-path?limit=1")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .expect("leader path response");
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response
+        .into_body()
+        .collect()
+        .await
+        .expect("leader path body")
+        .to_bytes();
+    let value: serde_json::Value = serde_json::from_slice(&body).expect("leader path json");
+    assert_eq!(value["limit"], 1);
+    assert_eq!(value["path"][0]["leader"], "leader-geo");
+    assert_eq!(value["path"][0]["latitude"], 10.5);
+    assert_eq!(value["path"][0]["longitude"], -20.25);
+    assert_eq!(value["path"][0]["city"], "Test City");
 }

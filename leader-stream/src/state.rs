@@ -5,10 +5,11 @@ use std::sync::Arc;
 use bytes::Bytes;
 use tokio::sync::{broadcast, RwLock};
 
-use leader_stream::{render_docs, render_index};
+use leader_stream::{render_docs, render_index, render_map};
 
 use crate::config::Config;
 use crate::constants::{API_FALLBACK_SLOT_MS, BROADCAST_BUFFER};
+use crate::geo::GeoIpService;
 use crate::models::{
     BasePayload, CachedPayload, CurrentSlotPayload, LeaderCache, NextLeadersPayload, NodesCache,
     TrackSchedule,
@@ -40,6 +41,7 @@ pub(crate) struct AppState {
     pub(crate) next_leaders_cache: Arc<RwLock<HashMap<usize, CachedPayload<NextLeadersPayload>>>>,
     pub(crate) initial_html: Arc<RwLock<Bytes>>,
     pub(crate) docs_html: Bytes,
+    pub(crate) map_html: Bytes,
     pub(crate) leader_stream_url: String,
     pub(crate) cache_bust: String,
     pub(crate) rpc: RpcClient,
@@ -47,14 +49,21 @@ pub(crate) struct AppState {
     pub(crate) track_subscribers: AtomicUsize,
     pub(crate) leader_lookahead: AtomicU64,
     pub(crate) slot_ms_estimate: AtomicU64,
+    pub(crate) geoip: Option<Arc<GeoIpService>>,
 }
 
 impl AppState {
-    pub(crate) fn new(config: Config, rpc: RpcClient, leader_stream_url: String) -> Arc<Self> {
+    pub(crate) fn new(
+        config: Config,
+        rpc: RpcClient,
+        leader_stream_url: String,
+        geoip: Option<GeoIpService>,
+    ) -> Arc<Self> {
         let (sender, _) = broadcast::channel(BROADCAST_BUFFER);
         let cache_bust = now_ms().to_string();
         let base_html = render_index(&leader_stream_url, &cache_bust, None);
         let docs_html = render_docs(&cache_bust);
+        let map_html = render_map(&cache_bust, &leader_stream_url);
         Arc::new(Self {
             sender,
             latest: Arc::new(RwLock::new(None)),
@@ -66,6 +75,7 @@ impl AppState {
             next_leaders_cache: Arc::new(RwLock::new(HashMap::new())),
             initial_html: Arc::new(RwLock::new(Bytes::from(base_html))),
             docs_html: Bytes::from(docs_html),
+            map_html: Bytes::from(map_html),
             leader_stream_url,
             cache_bust,
             rpc,
@@ -73,6 +83,7 @@ impl AppState {
             track_subscribers: AtomicUsize::new(0),
             slot_ms_estimate: AtomicU64::new(API_FALLBACK_SLOT_MS),
             config,
+            geoip: geoip.map(Arc::new),
         })
     }
 

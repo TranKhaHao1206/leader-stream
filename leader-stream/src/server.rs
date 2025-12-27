@@ -13,8 +13,8 @@ use tower_http::services::ServeDir;
 use tracing::info;
 
 use crate::handlers::{
-    current_slot_handler, docs_handler, health_handler, index_handler, leader_stream,
-    next_leaders_handler, options_handler,
+    current_slot_handler, docs_handler, health_handler, index_handler, leader_path_handler,
+    leader_stream, map_handler, next_leaders_handler, options_handler,
 };
 use crate::state::AppState;
 
@@ -23,6 +23,8 @@ pub(crate) fn build_router(state: Arc<AppState>, static_dir: String) -> Router {
         .route("/", get(index_handler))
         .route("/docs", get(docs_handler))
         .route("/docs.html", get(docs_handler))
+        .route("/map", get(map_handler))
+        .route("/map.html", get(map_handler))
         .route(
             "/api/current-slot",
             get(current_slot_handler).options(options_handler),
@@ -31,7 +33,14 @@ pub(crate) fn build_router(state: Arc<AppState>, static_dir: String) -> Router {
             "/api/next-leaders",
             get(next_leaders_handler).options(options_handler),
         )
-        .route("/api/leader-stream", get(leader_stream).options(options_handler))
+        .route(
+            "/api/leader-path",
+            get(leader_path_handler).options(options_handler),
+        )
+        .route(
+            "/api/leader-stream",
+            get(leader_stream).options(options_handler),
+        )
         .route("/health", get(health_handler))
         .fallback_service(ServeDir::new(static_dir))
         .with_state(state)

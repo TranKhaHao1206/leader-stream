@@ -35,6 +35,29 @@ pub(crate) struct LeaderRowPayload {
     pub(crate) port: Option<String>,
 }
 
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct LeaderLocationPayload {
+    pub(crate) slot: u64,
+    pub(crate) leader: String,
+    pub(crate) ip: Option<String>,
+    pub(crate) port: Option<String>,
+    pub(crate) latitude: Option<f64>,
+    pub(crate) longitude: Option<f64>,
+    pub(crate) city: Option<String>,
+    pub(crate) country: Option<String>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct LeaderPathPayload {
+    pub(crate) current_slot: u64,
+    pub(crate) limit: usize,
+    pub(crate) slot_ms: u64,
+    pub(crate) ts: u64,
+    pub(crate) path: Vec<LeaderLocationPayload>,
+}
+
 #[derive(Clone)]
 pub(crate) struct NodeInfo {
     pub(crate) tpu: Option<String>,
@@ -90,8 +113,7 @@ pub(crate) struct TrackSchedule {
 
 impl TrackSchedule {
     pub(crate) fn covers_slot(&self, slot: u64) -> bool {
-        slot >= self.epoch_start
-            && slot < self.epoch_start.saturating_add(self.slots_in_epoch)
+        slot >= self.epoch_start && slot < self.epoch_start.saturating_add(self.slots_in_epoch)
     }
 
     pub(crate) fn slots_until(&self, slot: u64) -> Option<u64> {

@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Solana Leader Path</title>
+        <meta name="leader-stream-url" content="{{leader_stream_url}}" />
+        <meta
+            name="description"
+            content="Globe view of upcoming Solana leaders with geolocated TPU endpoints."
+        />
+        <meta property="og:title" content="Solana Leader Path" />
+        <meta
+            property="og:description"
+            content="Globe view of upcoming Solana leaders with geolocated TPU endpoints."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="/og.svg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:type" content="image/svg+xml" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Solana Leader Path" />
+        <meta
+            name="twitter:description"
+            content="Globe view of upcoming Solana leaders with geolocated TPU endpoints."
+        />
+        <meta name="twitter:image" content="/og.svg" />
+        <link rel="stylesheet" href="/styles.css?{{cache_bust}}" />
+        <style>
+            :root {
+                --map-accent: var(--accent-1, #a855f7);
+                --map-accent-strong: var(--accent-strong, #c084fc);
+                --map-accent-alt: var(--accent-2, #22d3ee);
+            }
+
+            .map-page .hero {
+                align-items: flex-end;
+            }
+
+            .map-panel {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .globe-wrap {
+                display: grid;
+                grid-template-columns: 1.8fr 1fr;
+                gap: 16px;
+                align-items: stretch;
+            }
+
+            .globe {
+                min-height: 520px;
+                background: rgba(255, 255, 255, 0.02);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 18px;
+                overflow: hidden;
+            }
+
+            .map-sidebar {
+                background: rgba(255, 255, 255, 0.02);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 18px;
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                min-height: 520px;
+            }
+
+            .path-list {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                overflow-y: auto;
+            }
+
+            .path-list li {
+                background: rgba(255, 255, 255, 0.02);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                border-radius: 12px;
+                padding: 10px 12px;
+                display: grid;
+                grid-template-columns: auto 1fr;
+                gap: 6px 12px;
+                align-items: center;
+            }
+
+            .path-list .slot {
+                font-weight: 600;
+                color: var(--map-accent-strong);
+                font-feature-settings: "tnum" on, "lnum" on;
+            }
+
+            .path-list .location {
+                font-size: 0.95rem;
+            }
+
+            .path-list .leader {
+                grid-column: 1 / span 2;
+                font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+                font-size: 0.9rem;
+                color: rgba(255, 255, 255, 0.8);
+                word-break: break-all;
+            }
+
+            .map-meta {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 10px;
+            }
+
+            .meta-card {
+                background: rgba(255, 255, 255, 0.02);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                border-radius: 12px;
+                padding: 10px 12px;
+            }
+
+            .meta-label {
+                display: block;
+                font-size: 0.85rem;
+                color: rgba(255, 255, 255, 0.7);
+                margin-bottom: 4px;
+            }
+
+            .meta-value {
+                font-weight: 600;
+                font-feature-settings: "tnum" on, "lnum" on;
+            }
+
+            @media (max-width: 960px) {
+                .globe-wrap {
+                    grid-template-columns: 1fr;
+                }
+
+                .map-sidebar {
+                    min-height: auto;
+                }
+            }
+        </style>
+        <script src="https://unpkg.com/globe.gl@4/dist/globe.gl.min.js"></script>
+    </head>
+    <body class="map-page">
+        <div class="backdrop" aria-hidden="true">
+            <div class="glow one"></div>
+            <div class="glow two"></div>
+            <div class="glow three"></div>
+            <div class="grain"></div>
+        </div>
+        <main class="page">
+            <div class="footer footer-top">
+                <a class="footer-link" href="/">Home</a>
+                &middot;
+                <a class="footer-link" href="/docs.html">Docs</a>
+                &middot; Leader path globe
+            </div>
+            <header class="hero">
+                <div class="hero-main">
+                    <div class="badge">
+                        <span class="pulse"></span>
+                        Solana Mainnet - Live Leader Path
+                    </div>
+                    <h1>
+                        <span class="title-top">Solana TPU</span>
+                        <span class="title-gradient">Leader Map</span>
+                    </h1>
+                    <div id="status" class="status">Ready.</div>
+                </div>
+                <aside class="hero-card">
+                    <p class="card-copy">
+                        Explore the upcoming leader schedule on a live 3D globe. We geolocate TPU
+                        endpoints with the MaxMind database and plot the path of the next validators.
+                    </p>
+                    <span class="card-label">Live updates</span>
+                    <p class="sub">
+                        Updates follow the same leader stream as the main view. Re-renders trigger
+                        after new slots or every 30 seconds.
+                    </p>
+                </aside>
+            </header>
+            <section class="panel map-panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Leader path</h2>
+                        <p class="sub">
+                            Consecutive leaders are connected in order. Only TPUs with valid
+                            geolocation appear on the globe.
+                        </p>
+                    </div>
+                    <div id="meta" class="meta"></div>
+                </div>
+                <div class="controls">
+                    <div class="field">
+                        <span>Limit</span>
+                        <select id="limit-select">
+                            <option value="100">100</option>
+                            <option value="250" selected>250</option>
+                            <option value="500">500</option>
+                            <option value="1000">1000</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <span>Last refresh</span>
+                        <output id="last-updated" class="filter-summary">Never</output>
+                    </div>
+                </div>
+                <div class="globe-wrap">
+                    <div id="globe" class="globe" role="img" aria-label="Leader path globe"></div>
+                    <div class="map-sidebar">
+                        <div class="map-meta">
+                            <div class="meta-card">
+                                <span class="meta-label">Leaders</span>
+                                <span id="leaders-count" class="meta-value">-</span>
+                            </div>
+                            <div class="meta-card">
+                                <span class="meta-label">With location</span>
+                                <span id="geo-count" class="meta-value">-</span>
+                            </div>
+                            <div class="meta-card">
+                                <span class="meta-label">Current slot</span>
+                                <span id="current-slot" class="meta-value">-</span>
+                            </div>
+                        </div>
+                        <ol id="path-list" class="path-list" aria-live="polite">
+                            <li>Loading path…</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <script>
+            (function () {
+                const statusEl = document.getElementById("status");
+                const metaEl = document.getElementById("meta");
+                const globeHost = document.getElementById("globe");
+                const pathList = document.getElementById("path-list");
+                const limitSelect = document.getElementById("limit-select");
+                const lastUpdated = document.getElementById("last-updated");
+                const leadersCountEl = document.getElementById("leaders-count");
+                const geoCountEl = document.getElementById("geo-count");
+                const currentSlotEl = document.getElementById("current-slot");
+                const leaderStreamUrl =
+                    document.querySelector('meta[name="leader-stream-url"]')?.content ||
+                    "/api/leader-stream";
+                const rootStyles = getComputedStyle(document.documentElement);
+                const accent = (rootStyles.getPropertyValue("--map-accent") || "#a855f7").trim();
+                const accentAlt = (rootStyles.getPropertyValue("--map-accent-alt") || "#22d3ee").trim();
+                const accentStrong = (rootStyles.getPropertyValue("--map-accent-strong") || "#c084fc").trim();
+                let globe;
+                let refreshTimer = null;
+                let lastRefreshMs = 0;
+                let isLoading = false;
+
+                function getLimit() {
+                    const value = parseInt(limitSelect.value || "250", 10);
+                    if (Number.isNaN(value)) {
+                        return 250;
+                    }
+                    return Math.min(Math.max(value, 50), 1000);
+                }
+
+                function setStatus(message) {
+                    if (statusEl) {
+                        statusEl.textContent = message;
+                    }
+                }
+
+                function formatLocation(row) {
+                    if (row.city && row.country) {
+                        return `${row.city}, ${row.country}`;
+                    }
+                    if (row.country) {
+                        return row.country;
+                    }
+                    return row.ip || "Location unavailable";
+                }
+
+                function renderList(path) {
+                    pathList.innerHTML = "";
+                    if (!path.length) {
+                        const item = document.createElement("li");
+                        item.textContent = "No geolocated leaders yet.";
+                        pathList.appendChild(item);
+                        return;
+                    }
+
+                    path.slice(0, 40).forEach((row) => {
+                        const item = document.createElement("li");
+                        const slot = document.createElement("span");
+                        slot.className = "slot";
+                        slot.textContent = `Slot ${row.slot}`;
+
+                        const location = document.createElement("span");
+                        location.className = "location";
+                        location.textContent = formatLocation(row);
+
+                        const leader = document.createElement("span");
+                        leader.className = "leader";
+                        leader.textContent = row.leader;
+
+                        item.appendChild(slot);
+                        item.appendChild(location);
+                        item.appendChild(leader);
+                        pathList.appendChild(item);
+                    });
+                }
+
+                function buildArcs(points) {
+                    const arcs = [];
+                    for (let i = 0; i < points.length - 1; i += 1) {
+                        const start = points[i];
+                        const end = points[i + 1];
+                        if (
+                            start.latitude == null ||
+                            start.longitude == null ||
+                            end.latitude == null ||
+                            end.longitude == null
+                        ) {
+                            continue;
+                        }
+                        const sameCoords =
+                            start.latitude === end.latitude && start.longitude === end.longitude;
+                        if (sameCoords) {
+                            continue;
+                        }
+                        arcs.push({
+                            startLat: start.latitude,
+                            startLng: start.longitude,
+                            endLat: end.latitude,
+                            endLng: end.longitude,
+                        });
+                    }
+                    return arcs;
+                }
+
+                function ensureGlobe() {
+                    if (globe || typeof Globe !== "function") {
+                        return globe;
+                    }
+                    globe = Globe()(globeHost)
+                        .globeImageUrl(
+                            "https://unpkg.com/three-globe@2.30.0/example/img/earth-dark.jpg",
+                        )
+                        .bumpImageUrl(
+                            "https://unpkg.com/three-globe@2.30.0/example/img/earth-topology.png",
+                        )
+                        .backgroundColor("rgba(0,0,0,0)")
+                        .showAtmosphere(true)
+                        .atmosphereColor(accent)
+                        .atmosphereAltitude(0.18)
+                        .pointAltitude(0.008)
+                        .pointRadius(0.9)
+                        .pointColor(() => accentAlt)
+                        .arcColor(() => [accentAlt, accentStrong || accent])
+                        .arcDashLength(0.35)
+                        .arcDashGap(0.2)
+                        .arcDashAnimateTime(2800)
+                        .arcAltitudeAutoScale(true)
+                        .arcStroke(0.6);
+                    return globe;
+                }
+
+                function applyData(data) {
+                    const path = (data?.path || []).filter(
+                        (row) => row.latitude != null && row.longitude != null,
+                    );
+                    leadersCountEl.textContent = (data?.path || []).length.toLocaleString();
+                    geoCountEl.textContent = path.length.toLocaleString();
+                    currentSlotEl.textContent = data?.currentSlot?.toLocaleString() ?? "-";
+                    lastUpdated.textContent = new Date(data?.ts || Date.now()).toLocaleTimeString();
+
+                    renderList(path);
+                    const arcs = buildArcs(path);
+                    const globeInstance = ensureGlobe();
+                    if (!globeInstance) {
+                        setStatus("Globe renderer unavailable.");
+                        return;
+                    }
+                    globeInstance.pointsData(path);
+                    globeInstance.pointLat("latitude");
+                    globeInstance.pointLng("longitude");
+                    globeInstance.pointLabel((row) => `${row.leader}\n${formatLocation(row)}`);
+                    globeInstance.arcsData(arcs);
+
+                    metaEl.textContent = `${path.length} leaders mapped`;
+                    setStatus("Live.");
+                    lastRefreshMs = Date.now();
+                }
+
+                async function loadPath() {
+                    if (isLoading) {
+                        return;
+                    }
+                    isLoading = true;
+                    if (refreshTimer) {
+                        clearTimeout(refreshTimer);
+                        refreshTimer = null;
+                    }
+                    const limit = getLimit();
+                    setStatus("Loading leader path…");
+                    try {
+                        const response = await fetch(`/api/leader-path?limit=${limit}`, {
+                            cache: "no-store",
+                        });
+                        if (!response.ok) {
+                            throw new Error(`Request failed with status ${response.status}`);
+                        }
+                        const payload = await response.json();
+                        applyData(payload);
+                    } catch (err) {
+                        console.error(err);
+                        setStatus("Unable to load leader path.");
+                        metaEl.textContent = "Location lookup unavailable.";
+                    } finally {
+                        refreshTimer = null;
+                        isLoading = false;
+                    }
+                }
+
+                function scheduleRefresh(delay = 800) {
+                    if (refreshTimer) {
+                        return;
+                    }
+                    refreshTimer = window.setTimeout(loadPath, delay);
+                }
+
+                function listenForStream() {
+                    try {
+                        const source = new EventSource(leaderStreamUrl);
+                        source.onmessage = (event) => {
+                            if (!event?.data) {
+                                return;
+                            }
+                            if (!lastRefreshMs || Date.now() - lastRefreshMs > 2500) {
+                                scheduleRefresh(600);
+                            }
+                        };
+                        source.onerror = () => {
+                            setStatus("Live updates unavailable; retrying.");
+                            scheduleRefresh(1200);
+                        };
+                    } catch (err) {
+                        console.warn("SSE unavailable", err);
+                    }
+                }
+
+                function syncLimitFromQuery() {
+                    const params = new URLSearchParams(window.location.search);
+                    const param = parseInt(params.get("limit") || "250", 10);
+                    if (!Number.isNaN(param)) {
+                        const clamped = Math.min(Math.max(param, 50), 1000);
+                        limitSelect.value = clamped.toString();
+                    }
+                }
+
+                limitSelect.addEventListener("change", () => {
+                    scheduleRefresh(0);
+                });
+
+                syncLimitFromQuery();
+                loadPath();
+                listenForStream();
+                setInterval(() => scheduleRefresh(0), 30000);
+            })();
+        </script>
+    </body>
+</html>

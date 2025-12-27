@@ -1,6 +1,7 @@
 mod background;
 mod config;
 mod constants;
+mod geo;
 mod handlers;
 mod models;
 mod rpc;
@@ -24,6 +25,7 @@ use tracing::{info, warn};
 use crate::background::{run_leader_cache_updater, run_slot_informer, run_subscriber_metrics};
 use crate::config::{read_env_first, Config};
 use crate::constants::DEFAULT_STATIC_DIR;
+use crate::geo::load_geoip;
 use crate::rpc::RpcClient;
 use crate::server::build_router;
 use crate::state::AppState;
@@ -50,11 +52,19 @@ async fn main() -> Result<()> {
         config.rpc_x_token.clone(),
         config.request_timeout,
     )?;
-    let leader_stream_url =
-        read_env_first(&["NEXT_PUBLIC_LEADER_STREAM_URL"]).unwrap_or_else(|| {
-            "/api/leader-stream".to_string()
-        });
-    let state = AppState::new(config.clone(), rpc, leader_stream_url);
+    let geoip = match load_geoip(&config).await {
+        Ok(service) => Some(service),
+        Err(err) => {
+            warn!(
+                ?err,
+                "failed to initialize MaxMind database; continuing without geolocation"
+            );
+            None
+        }
+    };
+    let leader_stream_url = read_env_first(&["NEXT_PUBLIC_LEADER_STREAM_URL"])
+        .unwrap_or_else(|| "/api/leader-stream".to_string());
+    let state = AppState::new(config.clone(), rpc, leader_stream_url, geoip);
 
     let disable_background = env::var("DISABLE_BACKGROUND_TASKS")
         .map(|value| {

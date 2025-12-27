@@ -1,5 +1,6 @@
 const INDEX_TEMPLATE: &str = include_str!("index.html");
 const DOCS_TEMPLATE: &str = include_str!("docs.html");
+const MAP_TEMPLATE: &str = include_str!("map.html");
 const LEADER_STREAM_TOKEN: &str = "{{leader_stream_url}}";
 const INITIAL_SCRIPT_TOKEN: &str = "{{initial_script}}";
 const CACHE_BUST_TOKEN: &str = "{{cache_bust}}";
@@ -26,4 +27,10 @@ pub fn render_index(
 
 pub fn render_docs(cache_bust: &str) -> String {
     DOCS_TEMPLATE.replace(CACHE_BUST_TOKEN, cache_bust)
+}
+
+pub fn render_map(cache_bust: &str, leader_stream_url: &str) -> String {
+    MAP_TEMPLATE
+        .replace(CACHE_BUST_TOKEN, cache_bust)
+        .replace(LEADER_STREAM_TOKEN, leader_stream_url)
 }
