@@ -49,6 +49,11 @@ docker run -p 3000:3000 --env-file .env leader-stream
 | `TRACK_LOOKAHEAD` | Slots to prefetch per tracked validator | 5000 |
 | `STATIC_DIR` | Override static dir | `<repo>/leader-stream/public` |
 | `NEXT_PUBLIC_LEADER_STREAM_URL` | Override SSE path injected into HTML | `/api/leader-stream` |
+| `MAXMIND_DB_PATH` | Path to the MaxMind MMDB file to use for geolocation | `./GeoLite2-City.mmdb` |
+| `MAXMIND_LICENSE_KEY` | Optional MaxMind license key for downloading GeoLite/GeoIP2 | none |
+| `MAXMIND_DB_DOWNLOAD_URL` | Override URL for downloading the MMDB (expects raw file or tar.gz) | none |
+| `MAXMIND_FALLBACK_URL` | Fallback URL for a free/test MaxMind database when no key is present | MaxMind test DB |
+| `MAXMIND_EDITION_ID` | Edition ID when downloading via license key | `GeoLite2-City` |
 
 See `.env.example` and `k8s/secret.env.example` for templates.
 
@@ -57,6 +62,7 @@ Static docs at `/docs.html` (source: `leader-stream/public/docs.html`). Key endp
 - `GET /api/next-leaders?limit=1000`
 - `GET /api/current-slot`
 - `GET /api/leader-stream?track=<validator>` (SSE)
+- `GET /map` globe view of upcoming leaders with geolocation (uses `/api/leader-path`)
 
 ## Deployment (Kubernetes)
 `k8s/` uses Kustomize. Replace image `ghcr.io/trustless-engineering/leader-stream:${GIT_SHA}` and supply your own overlays/secrets:

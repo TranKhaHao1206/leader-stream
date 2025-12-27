@@ -22,6 +22,11 @@ pub(crate) struct Config {
     pub(crate) ws_ping_interval: Duration,
     pub(crate) leader_lookahead: usize,
     pub(crate) track_lookahead: usize,
+    pub(crate) maxmind_db_path: String,
+    pub(crate) maxmind_license_key: Option<String>,
+    pub(crate) maxmind_edition_id: String,
+    pub(crate) maxmind_db_download_url: Option<String>,
+    pub(crate) maxmind_fallback_url: Option<String>,
 }
 
 impl Config {
@@ -32,10 +37,7 @@ impl Config {
             .clone()
             .unwrap_or_else(|| DEFAULT_RPC_URL.to_string());
         if using_default_rpc {
-            warn!(
-                "SOLANA_RPC_URL not set; defaulting to {}",
-                DEFAULT_RPC_URL
-            );
+            warn!("SOLANA_RPC_URL not set; defaulting to {}", DEFAULT_RPC_URL);
         }
         let rpc_x_token = read_env_first(&["SOLANA_RPC_X_TOKEN"]);
         let ws_override = read_env_first(&["SOLANA_WSS_URL", "SOLANA_WS_URL"]);
@@ -94,6 +96,14 @@ impl Config {
             .and_then(|value| value.parse::<usize>().ok())
             .unwrap_or(DEFAULT_TRACK_LOOKAHEAD);
 
+        let maxmind_db_path =
+            env::var("MAXMIND_DB_PATH").unwrap_or_else(|_| "./GeoLite2-City.mmdb".to_string());
+        let maxmind_license_key = read_env_first(&["MAXMIND_LICENSE_KEY", "GEOIP_LICENSE_KEY"]);
+        let maxmind_edition_id =
+            env::var("MAXMIND_EDITION_ID").unwrap_or_else(|_| "GeoLite2-City".to_string());
+        let maxmind_db_download_url = read_env_first(&["MAXMIND_DB_DOWNLOAD_URL"]);
+        let maxmind_fallback_url = read_env_first(&["MAXMIND_FALLBACK_URL"]);
+
         Ok(Self {
             rpc_url,
             rpc_x_token,
@@ -106,6 +116,11 @@ impl Config {
             ws_ping_interval,
             leader_lookahead,
             track_lookahead,
+            maxmind_db_path,
+            maxmind_license_key,
+            maxmind_edition_id,
+            maxmind_db_download_url,
+            maxmind_fallback_url,
         })
     }
 }

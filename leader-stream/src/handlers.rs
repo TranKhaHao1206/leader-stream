@@ -21,8 +21,8 @@ use crate::constants::{
     NEXT_LEADERS_MAX_LIMIT, NEXT_LEADERS_MIN_LIMIT,
 };
 use crate::models::{
-    BasePayload, CachedPayload, CurrentSlotPayload, LeaderRowPayload, NextLeadersPayload, Payload,
-    PayloadNoTrack, TrackSchedule,
+    BasePayload, CachedPayload, CurrentSlotPayload, LeaderLocationPayload, LeaderPathPayload,
+    LeaderRowPayload, NextLeadersPayload, Payload, PayloadNoTrack, TrackSchedule,
 };
 use crate::state::{AppState, StreamEvent};
 use crate::util::{now_ms, parse_tpu_address};
@@ -73,6 +73,15 @@ pub(crate) async fn docs_handler(State(state): State<Arc<AppState>>) -> impl Int
     response
 }
 
+pub(crate) async fn map_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let mut response = Response::new(Body::from(state.map_html.clone()));
+    response.headers_mut().insert(
+        header::CONTENT_TYPE,
+        HeaderValue::from_static("text/html; charset=utf-8"),
+    );
+    response
+}
+
 pub(crate) async fn current_slot_handler(State(state): State<Arc<AppState>>) -> Response {
     let now = now_ms();
     if let Some(slot) = state.latest_slot_hint().await {
@@ -98,43 +107,53 @@ pub(crate) async fn next_leaders_handler(
 ) -> Response {
     let limit = clamp_limit(params.limit.as_deref());
     let now = now_ms();
-    let latest_slot = state.latest_slot_hint().await;
+    match resolve_next_leaders_payload(&state, limit, now).await {
+        Ok(payload) => json_response(&payload),
+        Err(err) => error_response(err.to_string()),
+    }
+}
 
-    {
-        let cache = state.next_leaders_cache.read().await;
-        if let Some(entry) = cache.get(&limit) {
-            if now.saturating_sub(entry.ts_ms) < API_CACHE_TTL_MS
-                && (latest_slot.is_none() || latest_slot == Some(entry.payload.current_slot))
-            {
-                return json_response(&entry.payload);
-            }
-        }
+pub(crate) async fn leader_path_handler(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<LeadersParams>,
+) -> Response {
+    let limit = clamp_limit(params.limit.as_deref());
+    let now = now_ms();
+    let payload = match resolve_next_leaders_payload(&state, limit, now).await {
+        Ok(payload) => payload,
+        Err(err) => return error_response(err.to_string()),
+    };
+
+    let geoip = state.geoip.clone();
+    let mut path = Vec::with_capacity(payload.leaders.len());
+
+    for row in payload.leaders.iter() {
+        let coords = match (geoip.as_ref(), row.ip.as_ref()) {
+            (Some(service), Some(ip)) => service.lookup(ip).await,
+            _ => None,
+        };
+
+        path.push(LeaderLocationPayload {
+            slot: row.slot,
+            leader: row.leader.clone(),
+            ip: row.ip.clone(),
+            port: row.port.clone(),
+            latitude: coords.as_ref().map(|value| value.latitude),
+            longitude: coords.as_ref().map(|value| value.longitude),
+            city: coords.as_ref().and_then(|value| value.city.clone()),
+            country: coords.as_ref().and_then(|value| value.country.clone()),
+        });
     }
 
-    let result = build_next_leaders_payload(&state, limit, latest_slot, now).await;
+    let response = LeaderPathPayload {
+        current_slot: payload.current_slot,
+        limit: payload.limit,
+        slot_ms: payload.slot_ms,
+        ts: now,
+        path,
+    };
 
-    match result {
-        Ok(payload) => {
-            {
-                let mut cache = state.next_leaders_cache.write().await;
-                cache.insert(
-                    limit,
-                    CachedPayload {
-                        ts_ms: now,
-                        payload: payload.clone(),
-                    },
-                );
-            }
-            json_response(&payload)
-        }
-        Err(err) => {
-            let cache = state.next_leaders_cache.read().await;
-            if let Some(entry) = cache.get(&limit) {
-                return json_response(&entry.payload);
-            }
-            error_response(err.to_string())
-        }
-    }
+    json_response(&response)
 }
 
 pub(crate) async fn options_handler() -> impl IntoResponse {
@@ -150,9 +169,7 @@ fn json_response<T: Serialize>(payload: &T) -> Response {
     headers.insert("Content-Type", HeaderValue::from_static("application/json"));
     headers.insert(
         "Cache-Control",
-        HeaderValue::from_static(
-            "public, s-maxage=1, stale-while-revalidate=1, stale-if-error=30",
-        ),
+        HeaderValue::from_static("public, s-maxage=1, stale-while-revalidate=1, stale-if-error=30"),
     );
     (StatusCode::OK, headers, body).into_response()
 }
@@ -167,6 +184,48 @@ fn clamp_limit(input: Option<&str>) -> usize {
         .and_then(|value| value.parse::<usize>().ok())
         .unwrap_or(NEXT_LEADERS_DEFAULT_LIMIT);
     value.clamp(NEXT_LEADERS_MIN_LIMIT, NEXT_LEADERS_MAX_LIMIT)
+}
+
+async fn resolve_next_leaders_payload(
+    state: &Arc<AppState>,
+    limit: usize,
+    now: u64,
+) -> Result<NextLeadersPayload> {
+    let latest_slot = state.latest_slot_hint().await;
+
+    {
+        let cache = state.next_leaders_cache.read().await;
+        if let Some(entry) = cache.get(&limit) {
+            if now.saturating_sub(entry.ts_ms) < API_CACHE_TTL_MS
+                && (latest_slot.is_none() || latest_slot == Some(entry.payload.current_slot))
+            {
+                return Ok(entry.payload.clone());
+            }
+        }
+    }
+
+    match build_next_leaders_payload(state, limit, latest_slot, now).await {
+        Ok(payload) => {
+            {
+                let mut cache = state.next_leaders_cache.write().await;
+                cache.insert(
+                    limit,
+                    CachedPayload {
+                        ts_ms: now,
+                        payload: payload.clone(),
+                    },
+                );
+            }
+            Ok(payload)
+        }
+        Err(err) => {
+            let cache = state.next_leaders_cache.read().await;
+            if let Some(entry) = cache.get(&limit) {
+                return Ok(entry.payload.clone());
+            }
+            Err(err)
+        }
+    }
 }
 
 async fn build_next_leaders_payload(
@@ -252,7 +311,11 @@ pub(crate) async fn refresh_initial_payload(state: &Arc<AppState>) {
         Some(json) => json,
         None => return,
     };
-    let html = render_index(&state.leader_stream_url, &state.cache_bust, Some(&payload_json));
+    let html = render_index(
+        &state.leader_stream_url,
+        &state.cache_bust,
+        Some(&payload_json),
+    );
     {
         let mut cache = state.initial_html.write().await;
         *cache = Bytes::from(html);

@@ -8,7 +8,7 @@ pub use wasm_app::*;
 mod template;
 
 #[cfg(not(target_arch = "wasm32"))]
-pub use template::{render_docs, render_index};
+pub use template::{render_docs, render_index, render_map};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn wasm_placeholder() {}
